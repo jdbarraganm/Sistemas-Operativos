@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<stdbool.h>
 #include<string.h>
+//#include "randomStruct.c"
 #define max 1000
 
 struct dogType{
@@ -21,15 +22,49 @@ struct pair_int{
     int second;
 };
 
-int countRecords = 0;
-struct dogType *hash_table[max];
-struct dogType *next=NULL;
+struct registro{
+  struct dogType *hash_table[max];
+  int countRecords;
+};
+
+struct registro* newArray( ){
+    struct registro *table = malloc( sizeof( struct registro ) );
+    return table;
+
+}
+
+void readTable(struct registro *reg, char *filePath) {
+  FILE *reading = fopen(filePath,"r");
+
+  for (size_t i = 0; i < max; i++) {
+
+    if (&reg[i]==NULL) {
+      reg->hash_table[i] = malloc(sizeof(struct dogType));
+    }
+    int readedSize;
+    struct dogType *pointer=reg->hash_table[i], temp;
+
+    fread(&readedSize,sizeof(int),1,reading);
+    memcpy(pointer,&temp, sizeof(struct dogType));
+
+    while (readedSize-- > 1) {
+      pointer->next = malloc(sizeof(struct dogType));
+      fread(&temp,sizeof(struct dogType),1,reading);
+      pointer=pointer->next;
+      memcpy(pointer,&temp,sizeof(struct dogType));
+    }
+  }
+  fclose(reading);
+}
+
+
+
 char prueba[32];
 
 int hash_function(char a[32]){
   int hash = 0;
   for (int i = 0; i < 32; i++) {
-    printf("%i\t",a[i]);
+    //printf("%i\t",a[i]);
     if(a[i]>=65&&a[i]<=90){
         a[i]+=32;
     }
@@ -98,8 +133,6 @@ void loadDog(void *dog){
       newDog->record->first = address;
       newDog->record->second = addressSec;
     }
-    printf("dirección 1: %d\n", address);
-    printf("dirección 2: %d\n", addressSec);
     printf("registro hecho\n");
     countRecords++;
     preMenu();
@@ -125,44 +158,68 @@ void seeRecord(){
         }
         if (pos==record2) {
           system("gedit dataDogs.dat");
-          printf("hay algo\n");
-          char n[32];
-          char t[32];
-          memcpy(n,pointer->Name,32);
-          memcpy(t,pointer->Type,32);
-          printf("nombre:  %s\n",n);
-          printf("tipo: %s\n",t);
-          printf("Edad: %i\n",pointer->Age);
-          printf("Record: %i\n",pointer->record->first);
-          printf("Record: %i\n",pointer->record->second);
+          printRecord(pointer);
         }else{
           printf("Registro no existente\n");
         }
     }
     preMenu();
 }
-
 void deleteRecord(){
-    printf("Cantidad de registros:\t"
-           "%d\n",countRecords);
-    printf("Por favor ingrese el numero de registro a borrar\n");
-    int record;
-    scanf("%i",&record);
-    preMenu();
+  printf("Por favor ingrese la dirección 1 de registro a ver\n");
+  int record;
+  scanf("%i",&record);
+  printf("Por favor ingrese la dirección 2 de registro a ver\n");
+  int record2;
+  struct dogType *pointer = hash_table[record];
+  scanf("%i",&record2);
+  if(pointer==NULL){
+      printf("paila no hay nothing\n");
+  }else{
+      int pos=0;
+      while (pointer->next!=NULL && pos!=record2-1) {
+        pointer=pointer->next;
+        pos++;
+      }
+      if (pos==record2-1) {
+
+        system("gedit dataDogs.dat");
+        printRecord(pointer);
+      }else{
+        printf("Registro no existente\n");
+      }
+  }
+  preMenu();
 }
 
 void searchRecord(){
     char n[32];
-    printf("%s\n",prueba);
-    printf("%d\n",hash_function(prueba));
     printf("Por favor digite el nombre de su mascota\n"
            "Seguida la tecla ENTER\n");
     memset(n,32,32);
     scanf("%s",n);
     int addres = hash_function(n);
-    printf("%s\n",n);
     printf("%i\n",addres);
+    struct dogType *pointer = hash_table[addres];
+    printRecord(pointer);
+    while (pointer->next != NULL) {
+        pointer = pointer->next;
+        printRecord(pointer);
+    }
     preMenu();
+}
+
+void printRecord(struct dogType *dog){
+    printf("------------------------\n");
+    printf("Registro: %i %i\n", dog->record->first,dog->record->second);
+    printf("Nombre: %s\n",dog->Name);
+    printf("Tipo: %s\n", dog->Type);
+    printf("Edad: %i años\n", dog->Age);
+    printf("Raza: %s\n", dog->breed);
+    printf("Estatura: %i cm\n", dog->height);
+    printf("Peso: %3f Kg\n", dog->weight);
+    printf("Sexo: %s\n", dog->gender);
+    printf("------------------------\n");
 }
 
 void preMenu(){
@@ -180,6 +237,9 @@ void preMenu(){
 
 //Menu principal
 void menu(){
+    FILE *fp1,*fp2;
+
+
     printf("Por favor seleciona un numero de las sgtes opciones seguido de la tecla enter\n"
            "1. Ingresar registro\n"
            "2. Ver registro\n"
@@ -238,6 +298,15 @@ void menu(){
 }
 
 int main(){
-    menu();
+    //menu();
+    int r,h;
+    scanf("%i",&h);
+    do{
+        r = randAge();
+        printf("%i\n",r);
+        scanf("%i",&h);
+    }while(h != 0);
+
     return 0;
 }
+
