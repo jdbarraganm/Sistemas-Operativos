@@ -24,6 +24,7 @@ struct pair_int{
 
 struct registro{
   struct dogType *hash_table[max];
+  int sizes[max];
   int countRecords;
 };
 
@@ -36,9 +37,9 @@ struct registro* newArray( ){
 void readTable(struct registro *reg, char *filePath) {
   FILE *reading = fopen(filePath,"r");
 
-  for (size_t i = 0; i < max; i++) {
+  for (int i = 0; i < max; i++) {
 
-    if (&reg[i]==NULL) {
+    if (&reg->hash_table[i]==NULL) {
       reg->hash_table[i] = malloc(sizeof(struct dogType));
     }
     int readedSize;
@@ -56,6 +57,33 @@ void readTable(struct registro *reg, char *filePath) {
   }
   fclose(reading);
 }
+int writeTable( struct registro *reg,char *filePath){
+
+  int written = 0;
+  FILE *writing = fopen(filePath,"w");
+
+  for (int i = 0; i < max; i++) {
+
+    struct dogType *pointer=reg->hash_table[i], temp;
+
+    if (&reg->hash_table[i]==NULL) {
+      //reg->hash_table[i] = malloc(sizeof(struct dogType));
+    }else{
+      int s = reg->sizes[i];
+      fwrite(&s,sizeof(int),1,writing);
+
+
+      while (pointer!=NULL) {
+        fwrite(pointer,sizeof(struct dogType),1,writing);
+        pointer=pointer->next;
+        written++;
+      }
+    }
+  }
+  fclose(writing);
+  return written;
+}
+
 
 
 
@@ -105,23 +133,23 @@ struct dogType *createDog(){
   return newDog;
 }
 
-void loadDog(void *dog){
+void loadDog(struct registro *reg,void *dog){
     struct dogType *newDog = dog;
     char n[32];
     memcpy(n,newDog->Name,32);
     memcpy(prueba,newDog->Name,32);
     int address = hash_function(n);
-    struct dogType *pointer = hash_table[address];
+    struct dogType *pointer = reg->hash_table[address];
     int addressSec = 0;
     if(pointer==NULL){
         printf("entro al null\n");
-        hash_table[address] = newDog;
+        reg->hash_table[address] = newDog;
         newDog->record = malloc(sizeof(struct pair_int));
         newDog->record->first = address;
         newDog->record->second = addressSec;
     }else {
       printf("no es null\n");
-      pointer=hash_table[address];
+      pointer=reg->hash_table[address];
       addressSec+=1;
       while (pointer->next != NULL) {
         pointer = pointer->next;
@@ -134,19 +162,20 @@ void loadDog(void *dog){
       newDog->record->second = addressSec;
     }
     printf("registro hecho\n");
-    countRecords++;
+    reg->countRecords++;
+    reg->sizes[address]++;
     preMenu();
 }
 
-void seeRecord(){
+void seeRecord(struct registro *reg){
     printf("Cantidad de registros:\t"
-           "%d\n",countRecords);
+           "%d\n",reg->countRecords);
     printf("Por favor ingrese la dirección 1 de registro a ver\n");
     int record;
     scanf("%i",&record);
     printf("Por favor ingrese la dirección 2 de registro a ver\n");
     int record2;
-    struct dogType *pointer = hash_table[record];
+    struct dogType *pointer = reg->hash_table[record];
     scanf("%i",&record2);
     if(pointer==NULL){
         printf("paila no hay nothing\n");
@@ -165,13 +194,13 @@ void seeRecord(){
     }
     preMenu();
 }
-void deleteRecord(){
+void deleteRecord(struct registro *reg){
   printf("Por favor ingrese la dirección 1 de registro a ver\n");
   int record;
   scanf("%i",&record);
   printf("Por favor ingrese la dirección 2 de registro a ver\n");
   int record2;
-  struct dogType *pointer = hash_table[record];
+  struct dogType *pointer = reg->hash_table[record];
   scanf("%i",&record2);
   if(pointer==NULL){
       printf("paila no hay nothing\n");
@@ -192,7 +221,7 @@ void deleteRecord(){
   preMenu();
 }
 
-void searchRecord(){
+void searchRecord(struct registro *reg){
     char n[32];
     printf("Por favor digite el nombre de su mascota\n"
            "Seguida la tecla ENTER\n");
@@ -200,7 +229,7 @@ void searchRecord(){
     scanf("%s",n);
     int addres = hash_function(n);
     printf("%i\n",addres);
-    struct dogType *pointer = hash_table[addres];
+    struct dogType *pointer = reg->hash_table[addres];
     printRecord(pointer);
     while (pointer->next != NULL) {
         pointer = pointer->next;
@@ -238,7 +267,8 @@ void preMenu(){
 //Menu principal
 void menu(){
     FILE *fp1,*fp2;
-
+    struct registro *copyReg = newArray();
+    char str[15];
 
     printf("Por favor seleciona un numero de las sgtes opciones seguido de la tecla enter\n"
            "1. Ingresar registro\n"
@@ -264,31 +294,53 @@ void menu(){
         case 1:
             newPet = createDog();
             //memset(newPet->Name,' ',sizeof(struct dogType)-(sizeof(int)+sizeof(int)+sizeof(float)+sizeof(81)));
-            loadDog(newPet);
-            FILE *file = fopen("dataDogs.dat","w+");
-            if(file == NULL){
-                perror("error fopen");
-                exit(-1);
-            }
-            int t = fwrite(newPet,sizeof(struct dogType),1,file);
-            if(t == 0){
-                perror("Error en fwrite");
-                exit(-1);
-            }
-            int c = fclose(file);
-            if(c!=0){
-                perror("Error en fclose");
-                exit(-1);
-            }
-            break;
+            copyReg = newArray();
+            int address = hash_function(newPet->Name);
+            sprintf(str, "%d", address);
+            strcat(str,".dat");
+            readTable(copyReg, str);
+            loadDog(copyReg,newPet);
+            writeTable(copyReg,str);
+            //FILE *file = fopen("dataDogs.dat","w+");
+            // if(file == NULL){
+            //     perror("error fopen");
+            //     exit(-1);
+            // }
+            // int t = fwrite(newPet,sizeof(struct dogType),1,file);
+            // if(t == 0){
+            //     perror("Error en fwrite");
+            //     exit(-1);
+            // }
+            // int c = fclose(file);
+            // if(c!=0){
+            //     perror("Error en fclose");
+            //     exit(-1);
+            // }
+            // break;
         case 2:
-            seeRecord();
+        copyReg = newArray();
+        int address2 = hash_function(newPet->Name);
+        sprintf(str, "%d", address2);
+        strcat(str,".dat");
+        readTable(copyReg, str);
+            seeRecord(copyReg);
             break;
         case 3:
-            deleteRecord();
+        copyReg = newArray();
+        int address3 = hash_function(newPet->Name);
+        sprintf(str, "%d", address3);
+        strcat(str,".dat");
+        readTable(copyReg, str);
+            deleteRecord(copyReg);
+            writeTable(copyReg,str);
             break;
         case 4:
-            searchRecord();
+        copyReg = newArray();
+        int address4 = hash_function(newPet->Name);
+        sprintf(str, "%d", address4);
+        strcat(str,".dat");
+        readTable(copyReg, str);
+            searchRecord(copyReg);
             break;
         case 5:
             return;
@@ -298,15 +350,14 @@ void menu(){
 }
 
 int main(){
-    //menu();
-    int r,h;
-    scanf("%i",&h);
-    do{
-        r = randAge();
-        printf("%i\n",r);
-        scanf("%i",&h);
-    }while(h != 0);
+    menu();
+    // int r,h;
+    // scanf("%i",&h);
+    // do{
+    //     r = randAge();
+    //     printf("%i\n",r);
+    //     scanf("%i",&h);
+    // }while(h != 0);
 
     return 0;
 }
-
