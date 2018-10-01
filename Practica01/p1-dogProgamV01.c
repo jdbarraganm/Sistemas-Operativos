@@ -167,15 +167,15 @@ void loadDog(){
 }
 
 void seeRecord(){
-	FILE *fp=fopen("dataDogs.dat","rb");
-	struct dogType* pet=malloc(sizeof(struct dogType));
-	if(fp==NULL){
+	FILE *files=fopen("dataDogs.dat","rb");
+	struct dogType* dog=malloc(sizeof(struct dogType));
+	if(files==NULL){
 		printf("Error abriendo archivo dataDogs.dat.\n");
 		return;
 	}else{
-        fread(pet,sizeof(struct dogType),1,fp);
-		fseek(fp, 0L, SEEK_END);
-		int size = ftell(fp);
+        fread(dog,sizeof(struct dogType),1,fp);
+		fseek(files, 0L, SEEK_END);
+		int size = ftell(files);
 		fseek(fp, 0L, SEEK_SET);
 		int totalRecords=(size/sizeof(struct dogType));
 		printf("Cantidad de registros:\t"
@@ -188,7 +188,7 @@ void seeRecord(){
              printf("Posicion erronea\n", );
            }
            fread(pet,sizeof(struct dogType),1,fp);
-           while (!feop(fp)) {
+           while (!feop(files)) {
              /* code */
            }
 	}
