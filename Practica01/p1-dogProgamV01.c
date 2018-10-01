@@ -6,6 +6,7 @@
 
 struct dogType{
     struct pair_int *record;
+    int id;
     char Name[32];
     char Type[32];
     int Age;
@@ -26,36 +27,37 @@ struct dogType *hash_table[max];
 struct dogType *next=NULL;
 char prueba[32];
 
-int hash_file(char n[32]){
-    FILE *fp=fopen("dataDogs.dat","rb");
-    struct dogType* pet=malloc(sizeof(struct dogType));
-    if(fp==NULL){
-		printf("Error abriendo archivo dataDogs.dat\n");
-		return;
-	}else{
-		fread(pet,sizeof(struct dogType),1,fp);
-		while (!feof(fp)) {
-			if(equals(pet->nombre,nombre)==1){
-				found=1;
-				printf("*************************\n");
-				printf("ID %i\n",pet->id);
-				printf("Nombre %s\n",pet->nombre);
-				printf("Tipo %s\n",pet->tipo);
-				printf("Edad %i\n",pet->edad);
-				printf("Raza %s\n",pet->raza);
-				printf("Estatura %i\n",pet->estatura);
-				printf("Peso %lf\n",pet->peso);
-				printf("Sexo %c\n",pet->sexo);
-			}
-			fread(pet,sizeof(struct dogType),1,fp);
-		}
-		fclose(fp);
-	}
-	free(pet);
-	if(found==1) printf("Búsqueda concluida exitosamente.\n");
-	if(found==0) printf("Mascota no encontrada.\n");
-	mypause();
-}
+// int hash_file(char n[32]){
+//     FILE *fp=fopen("dataDogs.dat","rb");
+//     struct dogType* dog=malloc(sizeof(struct dogType));
+//     if(fp==NULL){
+// 		printf("Error abriendo archivo dataDogs.dat\n");
+// 		return;
+// 	}else{
+// 		fread(dog,sizeof(struct dogType),1,fp);
+// 		while (!feof(fp)) {
+// 			if(equals(dog->Name)==1){
+// 				found=1;
+//         printf("------------------------\n");
+//         printf("Registro: %i %i\n", dog->record->first,dog->record->second);
+//         printf("Nombre: %s\n",dog->Name);
+//         printf("Tipo: %s\n", dog->Type);
+//         printf("Edad: %i años\n", dog->Age);
+//         printf("Raza: %s\n", dog->breed);
+//         printf("Estatura: %i cm\n", dog->height);
+//         printf("Peso: %3f Kg\n", dog->weight);
+//         printf("Sexo: %s\n", dog->gender);
+//         printf("------------------------\n");
+// 			}
+// 			fread(pet,sizeof(struct dogType),1,fp);
+// 		}
+// 		fclose(fp);
+// 	}
+// 	free(pet);
+// 	if(found==1) printf("Búsqueda concluida exitosamente.\n");
+// 	if(found==0) printf("Mascota no encontrada.\n");
+// 	mypause();
+// }
 
 int hash_function(char a[32]){
   int hash = 0;
@@ -90,10 +92,9 @@ void printRecord(struct dogType *dog){
     printf("------------------------\n");
 }
 
-//struct dogType *createDog(){
 void loadDog(){
-    FILE *fp=fopen("dataDogs.dat","ab");
-    if(fp==NULL){
+    FILE *files=fopen("dataDogs.dat","ab");
+    if(files==NULL){
         printf("Error abriendo archivo dataDogs.dat.\n");
         return;
     }else{
@@ -148,8 +149,13 @@ void loadDog(){
             newDog->record->first = address;
             newDog->record->second = addressSec;
         }
-        fwrite(newDog,sizeof(struct dogType),1,fp);
-        fclose(fp);
+        fseek(files, 0L,SEEK_END);
+        int tam = ftell(files);
+        fseek(files, 0L,SEEK_SET);
+        newDog->id= tam/sizeof(struct dogType)+1;
+        printf("%s\n", );
+        fwrite(newDog,sizeof(struct dogType),1,files);
+        fclose(files);
         free(newDog);
         printf("registro hecho\n");
         countRecords++;
@@ -160,39 +166,6 @@ void loadDog(){
     //return newDog;
 }
 
-/*void loadDog(void *dog){
-    struct dogType *newDog = dog;
-    char n[32];
-    memcpy(n,newDog->Name,32);
-    memcpy(prueba,newDog->Name,32);
-    int address = hash_function(n);
-    struct dogType *pointer = hash_table[address];
-    int addressSec = 0;
-    if(pointer==NULL){
-        printf("entro al null\n");
-        hash_table[address] = newDog;
-        newDog->record = malloc(sizeof(struct pair_int));
-        newDog->record->first = address;
-        newDog->record->second = addressSec;
-    }else {
-      printf("no es null\n");
-      pointer=hash_table[address];
-      addressSec+=1;
-      while (pointer->next != NULL) {
-        pointer = pointer->next;
-        addressSec+=1;
-      }
-      pointer->next = malloc (sizeof(struct dogType));
-      pointer->next = newDog;
-      newDog->record = malloc(sizeof(struct pair_int));
-      newDog->record->first = address;
-      newDog->record->second = addressSec;
-    }
-    printf("registro hecho\n");
-    countRecords++;
-    preMenu();
-}
-*/
 void seeRecord(){
 	FILE *fp=fopen("dataDogs.dat","rb");
 	struct dogType* pet=malloc(sizeof(struct dogType));
@@ -207,31 +180,19 @@ void seeRecord(){
 		int totalRecords=(size/sizeof(struct dogType));
 		printf("Cantidad de registros:\t"
            "%i\n",totalRecords);
-	}
-    /*
 
-    printf("Por favor ingrese la dirección 1 de registro a ver\n");
-    int record;
-    scanf("%i",&record);
-    printf("Por favor ingrese la dirección 2 de registro a ver\n");
-    int record2;
-    struct dogType *pointer = hash_table[record];
-    scanf("%i",&record2);
-    if(pointer==NULL){
-        printf("paila no hay nothing\n");
-    }else{
-        int pos=0;
-        while (pointer->next!=NULL && pos!=record2) {
-          pointer=pointer->next;
-          pos++;
-        }
-        if (pos==record2) {
-          system("gedit dataDogs.dat");
-          printRecord(pointer);
-        }else{
-          printf("Registro no existente\n");
-        }
-    }*/
+           int buscar=0;
+           scanf("%i\n",&buscar);
+
+           if (buscar>totalRecords) {
+             printf("Posicion erronea\n", );
+           }
+           fread(pet,sizeof(struct dogType),1,fp);
+           while (!feop(fp)) {
+             /* code */
+           }
+	}
+
     preMenu();
 }
 
@@ -276,7 +237,6 @@ void menu(){
         struct dogType *newPet;
         switch(option){
             case 1:
-                //newPet = createDog();
                 loadDog();
                 break;
             case 2:
