@@ -147,7 +147,7 @@ void writeTable(int pos, struct dogType *pet){
                 //Escribimos en la posicion la mascota ingresada/borramos el archivo viejo y renombramos el nuevo
                 fwrite(pet,sizeof(struct dogType),1,filesNew);
                 fclose(files);
-                remove(files);
+                remove("dataDogs.dat");
                 fclose(filesNew);
                 rename("dataTemp.dat","dataDogs.dat");
                 free(temp);
@@ -173,7 +173,7 @@ void writeTable(int pos, struct dogType *pet){
                 }
                 //borramos el archivo viejo y renombramos el nuevo
                 fclose(files);
-                remove(files);
+                remove("dataDogs.dat");
                 fclose(filesNew);
                 rename("dataTemp.dat","dataDogs.dat");
                 free(temp);
@@ -215,7 +215,7 @@ void insertRecord(){
     int h = hash_function(newDog->Name);
     //En WriteTable si se llenan estos campos ya que se calculan
     writeTable(h,newDog);
-
+    printf("El id del registro%i\n",h);
     printf("registro hecho\n");
 
     preMenu();
@@ -242,8 +242,12 @@ void seeRecord(){
            if (buscar>totalRecords) {
              printf("Posicion erronea\n");
            }
+           fseek(files,(sizeof(struct dogType)*buscar),SEEK_SET);
            fread(dog,sizeof(struct dogType),1,files);
-           while (!feof(files)) {
+           printf("%s\n",dog->Name);
+
+           printf("WWWWW\n" );
+           /*while (!feof(files)) {
              if (dog->id==buscar) {
                FILE * fh = fopen("history.txt","w");
                fprintf(fh, "ID: %i\nNombre: %s\nTipo: %s\nEdad: %i\nRaza: %s\nEstatura: %i\nPeso: %lf\nSexo: %c\n", dog->id, dog->Name, dog->Type, dog->Age, dog->breed, dog->height, dog->weight, dog->gender);
@@ -252,7 +256,8 @@ void seeRecord(){
         return;
   }
   fread(dog,sizeof(struct dogType),1,files);
-}
+}*/
+
 fclose(files);
 }
 free(dog);
@@ -343,6 +348,6 @@ void menu(){
 }
 
 int main(){
-    menu();
+menu();
     return 0;
 }
