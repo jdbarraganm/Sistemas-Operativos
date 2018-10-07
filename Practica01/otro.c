@@ -10,6 +10,7 @@
 struct dogType{
     int id; //Posicion en la cual esta guardada el registro la cual se calcula con la funcion hash(Name)
     int next;//Posicion en la cual se guardaria otro registro si se tiene el mismo nombre (colision) calculado con la funcion reHash(Name)
+    int existe;
     char Name[32];
     char Type[32];
     int Age;
@@ -141,6 +142,7 @@ void writeTable(int pos, struct dogType *pet){
             for(int rec = 1; rec < pos; rec++){
                 temp->id = rec;
                 temp->next = pos;
+                temp->existe = 0;
                 fwrite(temp,sizeof(struct dogType),1,files);
             }
 
@@ -168,6 +170,7 @@ void writeTable(int pos, struct dogType *pet){
                   //Escribimos los nulls nuevos
                         temp->id = rec;
                         temp->next = pos;
+                        temp->existe = 0;
                         fwrite(temp,sizeof(struct dogType),1,files);
                 }
                 // //Escribimos en la posicion la mascota ingresada/borramos el archivo viejo y renombramos el nuevo
@@ -218,11 +221,12 @@ void writeTable(int pos, struct dogType *pet){
 
 int isFull(int buscar){
   char buf[32];
+  int res;
   FILE *files=fopen("dataDogs.dat","rb");
 	struct dogType* dog=malloc(sizeof(struct dogType));
 	if(files==NULL){
 		printf("Error abriendo archivo dataDogs.dat.\n");
-		return 0;
+		res=0;
 	}else{
 		fseek(files, 0L, SEEK_END);
     //fread(dog,sizeof(struct dogType),1,files);
@@ -236,12 +240,14 @@ int isFull(int buscar){
     printf("Cantidad de estructuras:\t""%i\n",totalRecords);
 
            if (buscar>totalRecords) {
-             return 0;
+             res=0;
            }else{
              fseek(files,(sizeof(int)+(sizeof(struct dogType)*(buscar-1))),SEEK_SET);
              fread(dog,sizeof(struct dogType),1,files);
-             if (dog->Name ==buf) {
-               return 0;
+             printf("id = %i\n",dog->id);
+             printf("existe = %i\n",dog->existe);
+             if (dog->existe ==0) {
+               res = 0;
              }else{
                return -1;
              }
@@ -249,11 +255,10 @@ int isFull(int buscar){
 
            }
 
-fseek(files,0L,SEEK_END);
-
 fclose(files);
-}
 free(dog);
+}
+return res;
 }
 
 void insertRecord(){
@@ -285,13 +290,17 @@ void insertRecord(){
         "Cuando haya terminado presione enter\n");
     scanf("%s", newDog->gender);
     //Se llenan todos los campos menos id y Next
-    int h = hash_function(newDog->Name);
 
-    newDog->id = h;
+    int h = hash_function(newDog->Name);
+    newDog->existe=1;
     //En WriteTable si se llenan estos campos ya que se calculan
-    while (isFull(h)==-1) {
-      h+1000;
+    int m=isFull(h);
+    while (m==-1) {
+      printf("m = %i\n",m);
+      h=h+1000;
+      m=isFull(h);
     }
+    newDog->id = h;
     writeTable(h,newDog);
     printf("El id del registro%i\n",h);
     printf("registro hecho\n");
