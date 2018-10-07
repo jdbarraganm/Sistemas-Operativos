@@ -216,6 +216,46 @@ void writeTable(int pos, struct dogType *pet){
     }
 }
 
+int isFull(int buscar){
+  char buf[32];
+  FILE *files=fopen("dataDogs.dat","rb");
+	struct dogType* dog=malloc(sizeof(struct dogType));
+	if(files==NULL){
+		printf("Error abriendo archivo dataDogs.dat.\n");
+		return 0;
+	}else{
+		fseek(files, 0L, SEEK_END);
+    //fread(dog,sizeof(struct dogType),1,files);
+		long int wr = ftell(files);
+    printf("tamleido%li\n",wr);
+		fseek(files, 0L, SEEK_SET);
+    int ingresados;
+    fread(&ingresados,sizeof(int),1,files);
+		int totalRecords=(int)(((wr-sizeof(int))/sizeof(struct dogType)));
+		printf("Cantidad de registros:\t""%i\n",ingresados);
+    printf("Cantidad de estructuras:\t""%i\n",totalRecords);
+
+           if (buscar>totalRecords) {
+             return 0;
+           }else{
+             fseek(files,(sizeof(int)+(sizeof(struct dogType)*(buscar-1))),SEEK_SET);
+             fread(dog,sizeof(struct dogType),1,files);
+             if (dog->Name ==buf) {
+               return 0;
+             }else{
+               return -1;
+             }
+             printf("Nombre %s\n",dog->Name);
+
+           }
+
+fseek(files,0L,SEEK_END);
+
+fclose(files);
+}
+free(dog);
+}
+
 void insertRecord(){
     //Se llenan los campos pedidos en la estructura NewDog
     struct dogType *newDog = malloc(sizeof(struct dogType));
@@ -249,12 +289,16 @@ void insertRecord(){
 
     newDog->id = h;
     //En WriteTable si se llenan estos campos ya que se calculan
+    while (isFull(h)==-1) {
+      h+1000;
+    }
     writeTable(h,newDog);
     printf("El id del registro%i\n",h);
     printf("registro hecho\n");
 
     preMenu();
 }
+
 
 void seeRecord(){
 	FILE *files=fopen("dataDogs.dat","rb");
