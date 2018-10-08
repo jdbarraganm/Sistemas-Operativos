@@ -107,11 +107,18 @@ int hash_file(char n[32]){
 
 //struct dogType *createDog(){
 void writeTable(int pos, struct dogType *pet){
-    char path;
-    char c = '.txt';
-    strcpy(path,pet->id);
-    str_append(path,c);
-    FILE * fh = fopen(path,"w");
+  // char *path = pet->id ;
+  // char c = '.txt';
+  //
+  // size_t len = strlen(path);
+  // char *str2 = malloc(len + 4 ); /* one for extra char, one for trailing zero */
+  // strcpy(str2, path);
+  // str2[len] = c;
+  // str2[len + 1] = '\0';
+  //
+  //   FILE * fh = fopen(str2,"w");
+  //   free( str2 );
+  //   fclose(fh);
     pet->next=pos+1000;
     long int wr=0;
     int tam;
@@ -349,12 +356,18 @@ void seeRecord(){
              printf("Nombre %s\n",dog->Name);
              printf("id %i\n",dog->id);
              printf("next %i\n",dog->next);
-             char path;
-             char c = '.txt';
-             strcpy(path,dog->id);
-             str_append(path,c);
-             FILE * fh = fopen(&path,"r");
-        system("nano path");
+             char *path = dog->id ;
+        //      char c = '.txt';
+        //
+        //      size_t len = strlen(path);
+        //      char *str2 = malloc(len + 4 ); /* one for extra char, one for trailing zero */
+        //      strcpy(str2, path);
+        //      str2[len] = c;
+        //      str2[len + 1] = '\0';
+        //        FILE * fh = fopen(str2,"r");
+        //        free( str2 );
+        //        fclose(fh);
+        // system("nano path");
               fclose(fh);
            }
 fseek(files,0L,SEEK_END);
