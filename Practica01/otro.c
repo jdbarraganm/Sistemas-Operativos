@@ -18,7 +18,7 @@ struct dogType{
     char breed[16];
     float weight;
     char gender;
-
+    int colision;
 };
 
 //struct dogType *hash_table[MAX];
@@ -47,6 +47,7 @@ void preMenu(){
 void printRecord(struct dogType *dog){
     printf("------------------------\n");
    // printf("Registro: %i %i\n", dog->record->first,dog->record->second);
+   printf("Colision: %i\n",dog->colision);
     printf("Id: %i\n",dog->id);
     printf("Nombre: %s\n",dog->Name);
     printf("Tipo: %s\n", dog->Type);
@@ -107,18 +108,6 @@ int hash_file(char n[32]){
 
 //struct dogType *createDog(){
 void writeTable(int pos, struct dogType *pet){
-  // char *path = pet->id ;
-  // char c = '.txt';
-  //
-  // size_t len = strlen(path);
-  // char *str2 = malloc(len + 4 ); /* one for extra char, one for trailing zero */
-  // strcpy(str2, path);
-  // str2[len] = c;
-  // str2[len + 1] = '\0';
-  //
-  //   FILE * fh = fopen(str2,"w");
-  //   free( str2 );
-  //   fclose(fh);
     pet->next=pos+1000;
     long int wr=0;
     int tam;
@@ -234,7 +223,27 @@ void writeTable(int pos, struct dogType *pet){
     }
 }
 
-int isFull(int buscar){
+char* itoa(int i, char b[]){
+    char const digit[] = "0123456789";
+    char* p = b;
+    if(i<0){
+        *p++ = '-';
+        i *= -1;
+    }
+    int shifter = i;
+    do{ //Move to where representation ends
+        ++p;
+        shifter = shifter/10;
+    }while(shifter);
+    *p = '\0';
+    do{ //Move back, inserting digits as u go
+        *--p = digit[i%10];
+        i = i/10;
+    }while(i);
+    return b;
+}
+
+int isFull(int buscar,char name[32]){
   char buf[32];
   int res;
   FILE *files=fopen("dataDogs.dat","rb");
@@ -261,10 +270,14 @@ int isFull(int buscar){
              fread(dog,sizeof(struct dogType),1,files);
              printf("id = %i\n",dog->id);
              printf("existe = %i\n",dog->existe);
-             if (dog->existe ==0) {
+             if (dog->existe==0 && dog->Name==name) {
                res = 0;
              }else{
-               return -1;
+              if (dog->Name!=name) {
+                res = 1;
+              }else{
+                res = -1;
+              }
              }
              printf("Nombre %s\n",dog->Name);
 
@@ -274,6 +287,34 @@ fclose(files);
 free(dog);
 }
 return res;
+}
+
+int colision(char nom[32],int hash) {
+  int resp=hash+1;
+  int res=1;
+  FILE *files=fopen("dataDogs.dat","rb");
+	struct dogType* dog=malloc(sizeof(struct dogType));
+	if(files==NULL){
+		printf("Error abriendo archivo dataDogs.dat.\n");
+		res=0;
+	}else{
+      while (res==0) {
+        fseek(files,(sizeof(int)+(sizeof(struct dogType)*(resp-1))),SEEK_SET);
+        fread(dog,sizeof(struct dogType),1,files);
+        if(dog->existe==0){
+          res=0;
+        }else{
+          if (dog->Name!=nom && dog->colision!=-1) {
+            resp=dog->colision;
+          }else{
+            if (dog->Name!=nom && dog->colision==-1) {
+              resp++;
+            }
+          }
+        }
+      }
+  }
+  return resp;
 }
 
 void insertRecord(){
@@ -307,13 +348,19 @@ void insertRecord(){
     //Se llenan todos los campos menos id y Next
 
     int h = hash_function(newDog->Name);
+    printf("ID ASISGNADO%i\n",h);
     newDog->existe=1;
     //En WriteTable si se llenan estos campos ya que se calculan
-    int m=isFull(h);
+    int m=isFull(h,newDog->Name);
     while (m==-1) {
       printf("m = %i\n",m);
       h=h+1000;
-      m=isFull(h);
+      m=isFull(h,newDog->Name);
+    }
+    if (m==1) {
+      h=colision(newDog->Name,h);
+    }else{
+      newDog->colision=h;
     }
     newDog->id = h;
     newDog->next=h+1000;
@@ -356,19 +403,20 @@ void seeRecord(){
              printf("Nombre %s\n",dog->Name);
              printf("id %i\n",dog->id);
              printf("next %i\n",dog->next);
-             char *path = dog->id ;
-        //      char c = '.txt';
-        //
-        //      size_t len = strlen(path);
-        //      char *str2 = malloc(len + 4 ); /* one for extra char, one for trailing zero */
-        //      strcpy(str2, path);
-        //      str2[len] = c;
-        //      str2[len + 1] = '\0';
-        //        FILE * fh = fopen(str2,"r");
-        //        free( str2 );
-        //        fclose(fh);
-        // system("nano path");
-              fclose(fh);
+             printf("colision %i\n",dog->colision);
+             char path[12];
+             char b[5] = "nano ";
+             itoa(dog->id,path);
+             char c[4] = ".txt";
+             printf("%s\n",path);
+             printf("c= %s\n", c);
+             //strcat(b,path);
+             //strcat(b,c);
+
+             printf("%s\n",b);
+
+             system(b);
+
            }
 fseek(files,0L,SEEK_END);
 
