@@ -244,7 +244,7 @@ int isColitioned(int w,char name[32]){
 }
 
 
-int isFull(int buscar){
+int isFull(int buscar,char name[32]){
 	char buf[32];
 	int res;
 	FILE *files=fopen("dataDogs.dat","rb");
@@ -274,10 +274,14 @@ int isFull(int buscar){
 			if (dog->existe ==0) {
 				res = 0;
 			}else{
-        if (dog->colision!=-1) {
-          return 1;
+        if (dog->Name==name) {
+          res=2;
         }else{
-          return -1;
+          if (dog->colision!=-1) {
+            return 1;
+          }else{
+            return -1;
+          }
         }
 			}
 			printf("Nombre %s\n",dog->Name);
@@ -419,7 +423,7 @@ void randomStruct(){
         pet->gender = randGender();
         pet->colision = -1;
 		idF = hash_function(pet->Name);
-    int m = isFull(idF);
+    int m = isFull(idF,pet->Name);
 		if(m==0){
       printf("OK\n");
       pet->id = idF;
@@ -478,7 +482,7 @@ int getColision(int key){
       }else{
         fwrite(&ingre,sizeof(int),1,files2);
         for (int i = 1; i < key; i++) {
-          printf("ENTRO\n");
+          //printf("ENTRO\n");
           fread(dog,sizeof(struct dogType),1,files);
           fwrite(dog,sizeof(struct dogType),1,files2);
         }
@@ -497,6 +501,7 @@ int getColision(int key){
         free(dog);
       }
     }
+    printf("FREEE ASISGNADO0 %i\n",count);
     return count;
   }
 }
@@ -505,6 +510,7 @@ void randomStruct2(){
 	struct dogType *pet;
 	//se meten los datos en el archivo
 	int i=0,idF;
+  int colitions=0;
 	for(;i<1000;i++){
 		pet=malloc(sizeof(struct dogType));
 		memset(pet->Name,0,32);
@@ -516,33 +522,41 @@ void randomStruct2(){
         pet->weight = randWeight();
         pet->gender = randGender();
 		idF = hash_function(pet->Name);
-    int m = isFull(idF);
-		if(m==1){
+    int m = isFull(idF,pet->Name);
+    if (m==0 || m==2) {
+
+    }else{
+		if(m==-1){
       idF=getColision(idF);
       pet->id = idF;
       pet->existe = 1;
+      colitions++;
+      writeTable(idF,pet);
 		}else{
-      if (m==-1) {
+      if (m==1) {
         idF=isColitioned(idF,pet->Name);
         if (idF<0) {
           idF=-idF;
           idF=getColision(idF);
         }else{
           int n;
-          n=isFull(idF);
-          while (idF!=0) {
+          n=isFull(idF,pet->Name);
+          while (idF!=0 && idF!=2) {
             idF=idF+1005;
-            n=isFull(idF);
+            n=isFull(idF,pet->Name);
           }
         }
+        pet->id = idF;
+        pet->existe = 1;
+        printf("%i\n",idF);
+        colitions++;
+        writeTable(idF,pet);
       }
-			pet->id = idF;
-			pet->existe = 1;
 //			printRecord(pet);
-			printf("%i\n",idF);
-		}
-    writeTable(idF,pet);
+      }
+    }
 	}
+  printf("colitions ingresadas%i\n",colitions);
 	printf("Archivo de prueba generado exitosamente.\n");
 }
 
