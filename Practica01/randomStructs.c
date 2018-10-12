@@ -71,7 +71,7 @@ void preMenu(){
 }
 
 void writeTable(int pos, struct dogType *pet){
-	pet->next=pos+1000;
+	pet->next=pos+1005;
   pet->colision=-1;
     long int wr=0;
     int tam;
@@ -194,7 +194,52 @@ void writeTable(int pos, struct dogType *pet){
         }
     }
 }
-//int isColitioned(int w)
+int isColitioned(int w,char name[32]){
+  char buf[32];
+  int res;
+  FILE *files=fopen("dataDogs.dat","rb");
+	struct dogType* dog=malloc(sizeof(struct dogType));
+	if(files==NULL){
+		printf("Error abriendo archivo dataDogs.dat.\n");
+		res=0;
+	}else{
+    fseek(files, 0L, SEEK_END);
+    long int wr = ftell(files);
+		printf("tamleido%li\n",wr);
+		fseek(files, 0L, SEEK_SET);
+		int ingresados;
+		fread(&ingresados,sizeof(int),1,files);
+		int totalRecords=(int)(((wr-sizeof(int))/sizeof(struct dogType)));
+		printf("Cantidad de registros:\t""%i\n",ingresados);
+		printf("Cantidad de estructuras:\t""%i\n",totalRecords);
+
+    if (w>totalRecords) {
+			res=0;
+		}else{
+
+      do {
+        fseek(files,(sizeof(int)+(sizeof(struct dogType)*(w-1))),SEEK_SET);
+        fread(dog,sizeof(struct dogType),1,files);
+        if (dog->Name==name) {
+          res = 1;
+        }else{
+          w=dog->colision;
+        }
+        printf("id = %i\n",dog->id);
+        printf("existe = %i\n",dog->existe);
+      } while(dog->colision!=-1 && res!=0);
+
+      if (res=0) {
+        w=-w;
+      }else{
+
+      }
+
+    }
+    return w;
+  }
+}
+
 
 int isFull(int buscar){
 	char buf[32];
@@ -227,7 +272,7 @@ int isFull(int buscar){
 				res = 0;
 			}else{
         if (dog->colision!=-1) {
-          return 2;
+          return 1;
         }else{
           return -1;
         }
@@ -386,6 +431,7 @@ void randomStruct(){
   printf("ingresados%i\n",counts);
 	printf("Archivo de prueba generado exitosamente.\n");
 }
+
 int getColision(int key){
   char buf[32];
   int res=1;
@@ -468,11 +514,25 @@ void randomStruct2(){
         pet->gender = randGender();
 		idF = hash_function(pet->Name);
     int m = isFull(idF);
-		if(m==-1){
+		if(m==1){
       idF=getColision(idF);
       pet->id = idF;
       pet->existe = 1;
 		}else{
+      if (m==-1) {
+        idF=isColitioned(idF,pet->Name);
+        if (idF<0) {
+          idF=-idF;
+          idF=getColision(idF);
+        }else{
+          int n;
+          n=isFull(idF);
+          while (idF!=0) {
+            idF=idF+1005;
+            n=isFull(idF);
+          }
+        }
+      }
 			pet->id = idF;
 			pet->existe = 1;
 //			printRecord(pet);
