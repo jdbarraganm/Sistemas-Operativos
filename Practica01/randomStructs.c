@@ -170,10 +170,12 @@ void writeTable(int pos, struct dogType *pet){
 						if (temp->next < pos) {
 							fwrite(temp,sizeof(struct dogType),1,files);
 						}else{
-							if (temp->next > pos) {
+							if (temp->next > pos && temp->existe==0) {
 							  temp->next = pos;
 							  fwrite(temp,sizeof(struct dogType),1,files);
-							}
+							}else{
+                fwrite(temp,sizeof(struct dogType),1,files);
+              }
 						}
 					}
 					fread(temp,sizeof(struct dogType),1,files2);
@@ -194,6 +196,7 @@ void writeTable(int pos, struct dogType *pet){
         }
     }
 }
+
 int isColitioned(int w,char name[32]){
   char buf[32];
   int res;
