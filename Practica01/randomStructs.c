@@ -45,6 +45,7 @@ void printRecord(struct dogType *dog){
     printf("Estatura: %i cm\n", dog->height);
     printf("Peso: %3f Kg\n", dog->weight);
     printf("Sexo: %c\n", dog->gender);
+	printf("Colision: %i\n",dog->colision);
     printf("------------------------\n");
 }
 
@@ -53,6 +54,7 @@ struct dogType *hash_table[MAX];
 char *names[maxN];//arreglo de tamaño 1005 de punteros para los nombres
 char *namesRes[maxN];//arreglo de nombres restantes
 int ids[maxN];
+int freeIds[maxN];
 
 char *types[] = {"perro","gato","tortuga","conejo",
 "elefante","Caballo","gallina","hamster","vaca",
@@ -65,25 +67,23 @@ char *breed[] = {"Akita","Azawakh","Basenji","Beagle","Bulldog",
 "Lebrel","Leonberger","Mudi","Pumi",};
 
 void preMenu(){
-    /*printf("Oprima [Enter] para Continuar\n");
+    printf("Oprima [Enter] para Continuar\n");
     fflush(stdin);
-	getchar();*/
+	getchar();
 }
 
 void writeTable(int pos, struct dogType *pet){
 	pet->next=pos+1005;
-  pet->colision=-1;
+	pet->colision=-1;
     long int wr=0;
     int tam;
     int ingre;
-
     FILE *files2=fopen("dataDogs.dat","rb");
     if(files2==NULL){
         printf("Error abriendo archivo dataDogs.dat.\n");
     }else{
 		fseek(files2, 0L,SEEK_END);
 		printf("paso fseek END\n");
-		preMenu();
 		wr=ftell(files2);
 		fseek(files2,0L,SEEK_SET);
 		fread(&ingre,sizeof(int),1,files2);
@@ -98,7 +98,6 @@ void writeTable(int pos, struct dogType *pet){
         return;
     }else{
 		printf("creo DataTemp de escritura lectura\n");
-		preMenu();
         struct dogType *temp;
         int tam = (int)(((wr-sizeof(int))/sizeof(struct dogType)));
         printf("tam leido %li\n",wr);
@@ -107,7 +106,6 @@ void writeTable(int pos, struct dogType *pet){
             ///recorremos el archivo hasta la posicion y lo llenamos de estructuras Null
             printf("Entro a tam<=0\n");
             fseek(files,0L,SEEK_SET);
-			preMenu();
             int f=1;
             fwrite(&f,sizeof(int),1,files);
             temp = malloc(sizeof(struct dogType));
@@ -125,6 +123,7 @@ void writeTable(int pos, struct dogType *pet){
             free(temp);
 			free(pet);
         }else{
+			printf("%i\n",pos);
             if(pos>tam){///ingresa un registro dependiendo la poscion
                         ///en este caso mayor al tam del file actual
                         ///Cerramos el archivo para escribirlo en un archivo
@@ -139,7 +138,6 @@ void writeTable(int pos, struct dogType *pet){
 
                 printf("Entro a pos>tam\n");
                 printf("Leyo %i estructuras ingresadas\n", ingre);
-				preMenu();
                 for(int rec = tam+1; rec < pos; rec++){//recorremos el archivo files escribiendo ahora en filesNew
                   //Escribimos los nulls nuevos
                     temp->id = rec;
@@ -160,7 +158,6 @@ void writeTable(int pos, struct dogType *pet){
             }else{
 				if (pos<tam) {
 					printf("Entro a pos<tam\n");
-					preMenu();
 					ingre++;
 					fseek(files,0L,SEEK_SET);
 					fwrite(&ingre,sizeof(int),1,files);
@@ -174,8 +171,8 @@ void writeTable(int pos, struct dogType *pet){
 							  temp->next = pos;
 							  fwrite(temp,sizeof(struct dogType),1,files);
 							}else{
-                fwrite(temp,sizeof(struct dogType),1,files);
-              }
+                				fwrite(temp,sizeof(struct dogType),1,files);
+              				}
 						}
 					}
 					fread(temp,sizeof(struct dogType),1,files2);
@@ -188,7 +185,7 @@ void writeTable(int pos, struct dogType *pet){
 					fclose(files);
 					remove("dataDogs.dat");
 					rename("dataTemp.dat","dataDogs.dat");
-					// printRecord(pet);
+					printRecord(pet);
 					free(temp);
 					free(pet);
                 }
@@ -199,7 +196,7 @@ void writeTable(int pos, struct dogType *pet){
 
 int isColitioned(int w,char name[32]){
   char buf[32];
-  int res;
+  int res=0;
   FILE *files=fopen("dataDogs.dat","rb");
 	struct dogType* dog=malloc(sizeof(struct dogType));
 	if(files==NULL){
@@ -208,13 +205,10 @@ int isColitioned(int w,char name[32]){
 	}else{
     fseek(files, 0L, SEEK_END);
     long int wr = ftell(files);
-		printf("tamleido%li\n",wr);
 		fseek(files, 0L, SEEK_SET);
 		int ingresados;
 		fread(&ingresados,sizeof(int),1,files);
 		int totalRecords=(int)(((wr-sizeof(int))/sizeof(struct dogType)));
-		printf("Cantidad de registros:\t""%i\n",ingresados);
-		printf("Cantidad de estructuras:\t""%i\n",totalRecords);
 
     if (w>totalRecords) {
 			res=0;
@@ -226,13 +220,19 @@ int isColitioned(int w,char name[32]){
         if (dog->Name==name) {
           res = 1;
         }else{
-          w=dog->colision;
+          if (dog->colision!=-1) {
+            w=dog->colision;
+          }else{
+            if (dog->colision==-1) {
+              res=-1;
+            }
+          }
         }
         printf("id = %i\n",dog->id);
         printf("existe = %i\n",dog->existe);
-      } while(dog->colision!=-1 && res!=0);
+      } while(dog->colision!=-1 && res==0);
 
-      if (res=0) {
+      if (res=-1) {
         w=-w;
       }else{
 
@@ -268,21 +268,26 @@ int isFull(int buscar,char name[32]){
 			res=0;
 		}else{
 			fseek(files,(sizeof(int)+(sizeof(struct dogType)*(buscar-1))),SEEK_SET);
+			memset(dog->Name,0,32);
 			fread(dog,sizeof(struct dogType),1,files);
 			printf("id = %i\n",dog->id);
 			printf("existe = %i\n",dog->existe);
 			if (dog->existe ==0) {
 				res = 0;
 			}else{
-        if (dog->Name==name) {
-          res=2;
-        }else{
-          if (dog->colision!=-1) {
-            return 1;
-          }else{
-            return -1;
-          }
-        }
+				printf("dog: %s\n",dog->Name);
+				printf("dog: %s\n",name);
+				int temp = equals(dog->Name,name);
+				printf("%i\n",temp);
+				if (temp) {
+					res=2;
+				}else{
+          			if (dog->colision!=-1) {
+            			return 1;
+          			}else{
+            			return -1;
+          			}
+        		}
 			}
 			printf("Nombre %s\n",dog->Name);
 
@@ -322,7 +327,7 @@ void init(){
 		//printf("%i %i\n",id,arrId[id]);
 		ids[i]=id;
 		if(arrId[id]>1){//quiere decir que ya hay un nombre con ese id
-			fprintf(fileW3,"%s\n",names[i]);
+			fprintf(fileW3,"%s %i\n",names[i],id);
 			namesRes[j] = names[i];
 			ids[i]=-1;
 			rep[j]=i;
@@ -338,8 +343,15 @@ void init(){
 	j = 0;
     for(i = 0; i<1005;i++){
         id = hash_function(names[i]);
+		if(arrId[i]==0){
+			freeIds[j]=i;
+			ids[rep[j]]=i;
+			j++;
+		}
         fprintf(fileW, " %d %s \n", ids[i], names[i]);//escribimos en el archivo W1 los id y su nombre
+		//fprintf(fileW, " %d %s \n", id, names[i]);//escribimos en el archivo W1 los id y su nombre
 		fprintf(fileW4," %i\n",arrId[i]);
+
     }
 	for(;i<1010;i++){
 		fprintf(fileW4," %i\n",arrId[i]);
@@ -406,11 +418,64 @@ int equals(char petName[], char petName2[]){
 	return 1;
 }
 
+void refresh(int count,int key){
+	int ingre, totalRecords;
+	FILE *files=fopen("dataDogs.dat","rb");
+	struct dogType* dog=malloc(sizeof(struct dogType));
+	if(files==NULL){
+		printf("Error abriendo archivo dataDogs.dat.\n");
+	}else{
+		fseek(files, 0L, SEEK_END);
+		long int wr = ftell(files);
+    	printf("tamleido%li\n",wr);
+		fseek(files, 0L, SEEK_SET);
+	    int ingresados;
+    	fread(&ingresados,sizeof(int),1,files);
+		totalRecords=(int)(((wr-sizeof(int))/sizeof(struct dogType)));
+		printf("Cantidad de registros:\t""%i\n",ingresados);
+    	printf("Cantidad de estructuras:\t""%i\n",totalRecords);
+	}
+	if (count>totalRecords) {
+		printf("No se puede ingresar\n");
+	    return ;
+	}else{
+		fseek(files, 0L, SEEK_SET);
+		fread(&ingre,sizeof(int),1,files);
+		FILE *files2=fopen("dataTemp.dat","wb+");
+		if(files==NULL){
+			printf("Error abriendo archivo dataTemp.dat.\n");
+			return ;
+		}else{
+			fwrite(&ingre,sizeof(int),1,files2);
+			for (int i = 1; i < key; i++) {
+				//printf("ENTRO\n");
+				fread(dog,sizeof(struct dogType),1,files);
+				fwrite(dog,sizeof(struct dogType),1,files2);
+		    }
+			fread(dog,sizeof(struct dogType),1,files);
+			dog->colision=count;
+			printf("Nombre cambiado%s\n",dog->Name);
+			fwrite(dog,sizeof(struct dogType),1,files2);
+			//preMenu();
+			for (int rec = count; rec < totalRecords; rec++) {
+			    fread(dog,sizeof(struct dogType),1,files);
+			    fwrite(dog,sizeof(struct dogType),1,files2);
+			}
+			fclose(files2);
+			fclose(files);
+			remove("dataDogs.dat");
+			rename("dataTemp.dat","dataDogs.dat");
+			free(dog);
+  		}
+	}
+}
+
 void randomStruct(){
 	struct dogType *pet;
 	//se meten los datos en el archivo
+  int mu=0;
 	int i=0,idF;
-  int counts=0;
+	int counts=0;
 	for(;i<1000;i++){
 		pet=malloc(sizeof(struct dogType));
 		memset(pet->Name,0,32);
@@ -423,26 +488,51 @@ void randomStruct(){
         pet->gender = randGender();
         pet->colision = -1;
 		idF = hash_function(pet->Name);
-    int m = isFull(idF,pet->Name);
-		if(m==0){
-      printf("OK\n");
-      pet->id = idF;
-      pet->existe = 1;
-      printRecord(pet);
-      printf("%i\n",idF);
-      writeTable(idF,pet);
-      counts++;
-		}else{
+   		int m = isFull(idF,pet->Name);
+		printf("%i\n",m);
+		if(m==0){//si es 0 no ha escrito nada
+			printf("OK\n");
+			pet->id = idF;
+			pet->existe = 1;
+			printRecord(pet);
+			printf("%i\n",idF);
+			writeTable(idF,pet);
+			counts++;
 		}
 	}
-  printf("ingresados%i\n",counts);
+	int id;
+	for(i=0;i<(1000-counts);i++){
+		id = hash_function(namesRes[i]);
+		printf("%s %i %i\n",namesRes[i],id,freeIds[i]);
+    int m = isColitioned(id,namesRes[i]);
+    if (m<0) {
+      m=-m;
+      mu++;
+    }
+		refresh(freeIds[i],m);
+		pet=malloc(sizeof(struct dogType));
+		memset(pet->Name,0,32);
+		strcpy(pet->Name,namesRes[i]);
+        strcpy(pet->Type,randType());
+        pet->Age = randAge();
+        strcpy(pet->breed,randBreed());
+        pet->height = randHeight();
+        pet->weight = randWeight();
+        pet->gender = randGender();
+		pet->id = freeIds[i];
+		pet->existe = 1;
+		writeTable(freeIds[i],pet);
+		//preMenu();
+	}
+  	printf("ingresados%i\n",counts);
 	printf("Archivo de prueba generado exitosamente.\n");
+  printf("muuuuuuuu%i\n",mu);
 }
 
 int getColision(int key){
   char buf[32];
   int res=1;
-  int count=0;
+  int count=-1;
   int ingre;
   FILE *files=fopen("dataDogs.dat","rb");
 	struct dogType* dog=malloc(sizeof(struct dogType));
@@ -452,54 +542,70 @@ int getColision(int key){
 	}else{
 		fseek(files, 0L, SEEK_END);
 		long int wr = ftell(files);
-    printf("tamleido%li\n",wr);
+    	printf("tamleido%li\n",wr);
 		fseek(files, 0L, SEEK_SET);
-    int ingresados;
-    fread(&ingresados,sizeof(int),1,files);
+	    int ingresados;
+    	fread(&ingresados,sizeof(int),1,files);
 		int totalRecords=(int)(((wr-sizeof(int))/sizeof(struct dogType)));
 		printf("Cantidad de registros:\t""%i\n",ingresados);
-    printf("Cantidad de estructuras:\t""%i\n",totalRecords);
+    	printf("Cantidad de estructuras:\t""%i\n",totalRecords);
+		fread(dog,sizeof(struct dogType),1,files);
+		printRecord(dog);
+	    if (dog->existe==0) {
+			//preMenu();
+	        res=0;
+	    }
+    	while (res==1 && count<=totalRecords) {
+			count++;
+    		fread(dog,sizeof(struct dogType),1,files);
+			printRecord(dog);
+			printf("counts= %i\n",count);
+			//preMenu();
+		    if (dog->existe==0) {
+		        res=0;
+		    }
+		}
+		/*do {
+			count+=1;
+			fread(dog,sizeof(struct dogType),1,files);
+			printRecord(dog);
+		    printf("counts= %i\n",count);
+			preMenu();
 
-    while (res==1 && count<=totalRecords) {
-      fread(dog,sizeof(struct dogType),1,files);
-      if (dog->existe==0) {
-        res=0;
-      }else{
-        count++;
-      }
-    }
-    printf("counts= %i\n",count);
-    if (count>totalRecords) {
-      printf("No se puede ingresar\n");
-      return -1;
-    }else{
-      fseek(files, 0L, SEEK_SET);
-      fread(&ingre,sizeof(int),1,files);
-      FILE *files2=fopen("dataTemp.dat","wb+");
-      if(files==NULL){
-          printf("Error abriendo archivo dataTemp.dat.\n");
-          return -1;
-      }else{
-        fwrite(&ingre,sizeof(int),1,files2);
-        for (int i = 1; i < key; i++) {
-          //printf("ENTRO\n");
-          fread(dog,sizeof(struct dogType),1,files);
-          fwrite(dog,sizeof(struct dogType),1,files2);
-        }
-        fread(dog,sizeof(struct dogType),1,files);
-        dog->colision=count;
-        printf("NOmbre cambiado%s\n",dog->Name);
-        fwrite(dog,sizeof(struct dogType),1,files2);
-        for (int rec = count; rec < totalRecords; rec++) {
-            fread(dog,sizeof(struct dogType),1,files);
-            fwrite(dog,sizeof(struct dogType),1,files2);
-        }
-        fclose(files2);
-        fclose(files);
-        remove("dataDogs.dat");
-        rename("dataTemp.dat","dataDogs.dat");
-        free(dog);
-      }
+	    } while(dog->existe==1);*/
+	    printf("counts= %i\n",count);
+		//preMenu();
+	    if (count>totalRecords) {
+			printf("No se puede ingresar\n");
+		    return -1;
+    	}else{
+			fseek(files, 0L, SEEK_SET);
+			fread(&ingre,sizeof(int),1,files);
+			FILE *files2=fopen("dataTemp.dat","wb+");
+			if(files==NULL){
+				printf("Error abriendo archivo dataTemp.dat.\n");
+				return -1;
+			}else{
+				fwrite(&ingre,sizeof(int),1,files2);
+				for (int i = 1; i < key; i++) {
+					//printf("ENTRO\n");
+					fread(dog,sizeof(struct dogType),1,files);
+					fwrite(dog,sizeof(struct dogType),1,files2);
+			    }
+				fread(dog,sizeof(struct dogType),1,files);
+				dog->colision=count;
+				printf("Nombre cambiado%s\n",dog->Name);
+				fwrite(dog,sizeof(struct dogType),1,files2);
+				for (int rec = count; rec < totalRecords; rec++) {
+				    fread(dog,sizeof(struct dogType),1,files);
+				    fwrite(dog,sizeof(struct dogType),1,files2);
+				}
+				fclose(files2);
+				fclose(files);
+				remove("dataDogs.dat");
+				rename("dataTemp.dat","dataDogs.dat");
+				free(dog);
+      	}
     }
     printf("FREEE ASISGNADO0 %i\n",count);
     return count;
@@ -510,8 +616,8 @@ void randomStruct2(){
 	struct dogType *pet;
 	//se meten los datos en el archivo
 	int i=0,idF;
-  int colitions=0;
-	for(;i<1000;i++){
+ 	int colitions=0;
+	for(;i<70;i++){
 		pet=malloc(sizeof(struct dogType));
 		memset(pet->Name,0,32);
 		strcpy(pet->Name,names[i]);
@@ -522,47 +628,50 @@ void randomStruct2(){
         pet->weight = randWeight();
         pet->gender = randGender();
 		idF = hash_function(pet->Name);
-    int m = isFull(idF,pet->Name);
-    if (m==0 || m==2) {
+    	int m = isFull(idF,pet->Name);
+    	if (m==0 || m==2) {//si es 0 no ha escrito nada si es 2 hay una estructura con el mismo nombre
 
-    }else{
-		if(m==-1){
-      idF=getColision(idF);
-      pet->id = idF;
-      pet->existe = 1;
-      colitions++;
-      writeTable(idF,pet);
-		}else{
-      if (m==1) {
-        idF=isColitioned(idF,pet->Name);
-        if (idF<0) {
-          idF=-idF;
-          idF=getColision(idF);
-        }else{
-          int n;
-          n=isFull(idF,pet->Name);
-          while (idF!=0 && idF!=2) {
-            idF=idF+1005;
-            n=isFull(idF,pet->Name);
-          }
-        }
-        pet->id = idF;
-        pet->existe = 1;
-        printf("%i\n",idF);
-        colitions++;
-        writeTable(idF,pet);
-      }
+    	}else{
+			if(m==-1){//si -1 no tiene colisión asignada
+				idF=getColision(idF);
+				printf("%i\n",idF);
+				pet->id = idF;
+				pet->existe = 1;
+				colitions++;
+				printRecord(pet);
+				//preMenu();
+				writeTable(idF,pet);
+			}else{
+				if (m==1) {//ya tiene una colisión asignada
+				    idF=isColitioned(idF,pet->Name);
+					if (idF<0) {
+					    idF=-idF;
+					    idF=getColision(idF);
+				    }else{
+						int n;
+					    n=isFull(idF,pet->Name);
+					    while (idF!=0 && idF!=2) {
+		        			idF=idF+1005;
+		        			n=isFull(idF,pet->Name);
+		      			}
+		    	}
+				pet->id = idF;
+				pet->existe = 1;
+				printf("%i\n",idF);
+				colitions++;
+				writeTable(idF,pet);
+			  	}
 //			printRecord(pet);
-      }
-    }
+			}
+		}
 	}
-  printf("colitions ingresadas%i\n",colitions);
+  	printf("colitions ingresadas%i\n",colitions);
 	printf("Archivo de prueba generado exitosamente.\n");
 }
 
 int main(){
 	init();
     randomStruct();
-    randomStruct2();
+   //randomStruct2();
     return 0;
 }
