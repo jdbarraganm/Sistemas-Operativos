@@ -196,7 +196,7 @@ void writeTable(int pos, struct dogType *pet){
 
 int isColitioned(int w,char name[32]){
   char buf[32];
-  int res=0;
+  int res;
   FILE *files=fopen("dataDogs.dat","rb");
 	struct dogType* dog=malloc(sizeof(struct dogType));
 	if(files==NULL){
@@ -205,10 +205,13 @@ int isColitioned(int w,char name[32]){
 	}else{
     fseek(files, 0L, SEEK_END);
     long int wr = ftell(files);
+		printf("tamleido%li\n",wr);
 		fseek(files, 0L, SEEK_SET);
 		int ingresados;
 		fread(&ingresados,sizeof(int),1,files);
 		int totalRecords=(int)(((wr-sizeof(int))/sizeof(struct dogType)));
+		printf("Cantidad de registros:\t""%i\n",ingresados);
+		printf("Cantidad de estructuras:\t""%i\n",totalRecords);
 
     if (w>totalRecords) {
 			res=0;
@@ -220,19 +223,13 @@ int isColitioned(int w,char name[32]){
         if (dog->Name==name) {
           res = 1;
         }else{
-          if (dog->colision!=-1) {
-            w=dog->colision;
-          }else{
-            if (dog->colision==-1) {
-              res=-1;
-            }
-          }
+          w=dog->colision;
         }
         printf("id = %i\n",dog->id);
         printf("existe = %i\n",dog->existe);
-      } while(dog->colision!=-1 && res==0);
+      } while(dog->colision!=-1 && res!=0);
 
-      if (res=-1) {
+      if (res=0) {
         w=-w;
       }else{
 
@@ -327,7 +324,8 @@ void init(){
 		//printf("%i %i\n",id,arrId[id]);
 		ids[i]=id;
 		if(arrId[id]>1){//quiere decir que ya hay un nombre con ese id
-			fprintf(fileW3,"%s %i\n",names[i],id);
+//			fprintf(fileW3,"%s %i \n",names[i],id);
+			fprintf(fileW3,"%s\n",names[i]);
 			namesRes[j] = names[i];
 			ids[i]=-1;
 			rep[j]=i;
@@ -418,10 +416,35 @@ int equals(char petName[], char petName2[]){
 	return 1;
 }
 
+int hash_function2(char a[32]){
+	char line[32];
+	int r,i=0;
+	FILE *lec=fopen("namesIdsRep.txt","r");
+	while(fgets(line, sizeof(line)-1,lec)){
+		strtok(line, "\n");
+		r = equals(line,a);
+		printf("%i\n",r);
+		if(r){
+			break;
+		}
+		i++;
+	}
+	fclose(lec);
+	int sol;
+	FILE *idLec=fopen("freeIds.txt","r");
+	for(int j=0;j<=i;j++){
+		fscanf(idLec,"%i\n",&sol);
+	}
+	fclose(idLec);
+//	printf("sol: %i\n",sol);
+	return sol;
+}
+
 void refresh(int count,int key){
 	int ingre, totalRecords;
+  printf("ENTRO A REFRESH\n");
 	FILE *files=fopen("dataDogs.dat","rb");
-	struct dogType* dog=malloc(sizeof(struct dogType));
+	struct dogType* dog;
 	if(files==NULL){
 		printf("Error abriendo archivo dataDogs.dat.\n");
 	}else{
@@ -446,7 +469,9 @@ void refresh(int count,int key){
 			printf("Error abriendo archivo dataTemp.dat.\n");
 			return ;
 		}else{
+      fseek(files2, 0L, SEEK_SET);
 			fwrite(&ingre,sizeof(int),1,files2);
+      dog=malloc(sizeof(struct dogType));
 			for (int i = 1; i < key; i++) {
 				//printf("ENTRO\n");
 				fread(dog,sizeof(struct dogType),1,files);
@@ -457,7 +482,7 @@ void refresh(int count,int key){
 			printf("Nombre cambiado%s\n",dog->Name);
 			fwrite(dog,sizeof(struct dogType),1,files2);
 			//preMenu();
-			for (int rec = count; rec < totalRecords; rec++) {
+			for (int rec = key; rec < totalRecords; rec++) {
 			    fread(dog,sizeof(struct dogType),1,files);
 			    fwrite(dog,sizeof(struct dogType),1,files2);
 			}
@@ -473,7 +498,6 @@ void refresh(int count,int key){
 void randomStruct(){
 	struct dogType *pet;
 	//se meten los datos en el archivo
-  int mu=0;
 	int i=0,idF;
 	int counts=0;
 	for(;i<1000;i++){
@@ -500,16 +524,17 @@ void randomStruct(){
 			counts++;
 		}
 	}
-	int id;
+	int id,idH2;
 	for(i=0;i<(1000-counts);i++){
+    int e=0;
 		id = hash_function(namesRes[i]);
 		printf("%s %i %i\n",namesRes[i],id,freeIds[i]);
-    int m = isColitioned(id,namesRes[i]);
-    if (m<0) {
-      m=-m;
-      mu++;
-    }
-		refresh(freeIds[i],m);
+    do {
+      id=getEndCol(id);
+      e++;
+    } while(id>0);
+    id=-id;
+		refresh(freeIds[i],id);
 		pet=malloc(sizeof(struct dogType));
 		memset(pet->Name,0,32);
 		strcpy(pet->Name,namesRes[i]);
@@ -521,18 +546,87 @@ void randomStruct(){
         pet->gender = randGender();
 		pet->id = freeIds[i];
 		pet->existe = 1;
+    printf("OKKKKKKKK %i\n",e);
 		writeTable(freeIds[i],pet);
-		//preMenu();
+	// 	preMenu();
+    // free(pet);
 	}
   	printf("ingresados%i\n",counts);
 	printf("Archivo de prueba generado exitosamente.\n");
-  printf("muuuuuuuu%i\n",mu);
 }
 
-int getColision(int key){
+int getEndCol(int beg){
+  int ingre, totalRecords;
+	FILE *files=fopen("dataDogs.dat","rb");
+	struct dogType* dog=malloc(sizeof(struct dogType));
+	if(files==NULL){
+		printf("Error abriendo archivo dataDogs.dat.\n");
+	}else{
+		fseek(files, 0L, SEEK_END);
+		long int wr = ftell(files);
+		fseek(files, 0L, SEEK_SET);
+	    int ingresados;
+    	fread(&ingresados,sizeof(int),1,files);
+		totalRecords=(int)(((wr-sizeof(int))/sizeof(struct dogType)));
+
+
+  fseek(files,(sizeof(int)+(sizeof(struct dogType)*(beg-1))),SEEK_SET);
+  fread(dog,sizeof(struct dogType),1,files);
+
+  if (dog->colision==-1) {
+    int r=-beg;
+    return r;
+  }else{
+    return dog->colision;
+  }
+}
+}
+
+void randomStructF(){
+	struct dogType *pet;
+	//se meten los datos en el archivo
+	int i=0,idF,j;
+	int counts=0;
+	for(;i<9990000;i++){
+		pet=malloc(sizeof(struct dogType));
+		memset(pet->Name,0,32);
+		strcpy(pet->Name,names[j]);
+        strcpy(pet->Type,randType());
+        pet->Age = randAge();
+        strcpy(pet->breed,randBreed());
+        pet->height = randHeight();
+        pet->weight = randWeight();
+        pet->gender = randGender();
+        pet->colision = -1;
+		idF = hash_function(pet->Name);
+   		int m = isFull(idF,pet->Name);
+		while (m==2) {
+		  printf("m = %i\n",m);
+		  idF+=1005;
+		  m=isFull(idF,pet->Name);
+		}
+		printf("%i\n",m);
+		if(m==0){//si es 0 no ha escrito nada
+			printf("OK\n");
+			pet->id = idF;
+			pet->existe = 1;
+			printRecord(pet);
+			printf("%i\n",idF);
+			writeTable(idF,pet);
+			counts++;
+		}
+		if(i%1000==0){
+			j=0;
+		}
+		j++;
+
+	}
+	printf("Archivo de prueba generado exitosamente.\n");
+}
+
+int getColision(int count,int key){
   char buf[32];
   int res=1;
-  int count=-1;
   int ingre;
   FILE *files=fopen("dataDogs.dat","rb");
 	struct dogType* dog=malloc(sizeof(struct dogType));
@@ -549,22 +643,22 @@ int getColision(int key){
 		int totalRecords=(int)(((wr-sizeof(int))/sizeof(struct dogType)));
 		printf("Cantidad de registros:\t""%i\n",ingresados);
     	printf("Cantidad de estructuras:\t""%i\n",totalRecords);
-		fread(dog,sizeof(struct dogType),1,files);
-		printRecord(dog);
-	    if (dog->existe==0) {
-			//preMenu();
-	        res=0;
-	    }
-    	while (res==1 && count<=totalRecords) {
-			count++;
-    		fread(dog,sizeof(struct dogType),1,files);
-			printRecord(dog);
-			printf("counts= %i\n",count);
-			//preMenu();
-		    if (dog->existe==0) {
-		        res=0;
-		    }
-		}
+		// fread(dog,sizeof(struct dogType),1,files);
+		// printRecord(dog);
+	  //   if (dog->existe==0) {
+		// 	preMenu();
+	  //       res=0;
+	  //   }
+    // 	while (res==1 && count<=totalRecords) {
+		// 	count++;
+    // 		fread(dog,sizeof(struct dogType),1,files);
+		// 	printRecord(dog);
+		// 	printf("counts= %i\n",count);
+		// 	preMenu();
+		//     if (dog->existe==0) {
+		//         res=0;
+		//     }
+		// }
 		/*do {
 			count+=1;
 			fread(dog,sizeof(struct dogType),1,files);
@@ -574,7 +668,7 @@ int getColision(int key){
 
 	    } while(dog->existe==1);*/
 	    printf("counts= %i\n",count);
-		//preMenu();
+		preMenu();
 	    if (count>totalRecords) {
 			printf("No se puede ingresar\n");
 		    return -1;
@@ -633,20 +727,20 @@ void randomStruct2(){
 
     	}else{
 			if(m==-1){//si -1 no tiene colisión asignada
-				idF=getColision(idF);
+				// idF=getColision(idF);
 				printf("%i\n",idF);
 				pet->id = idF;
 				pet->existe = 1;
 				colitions++;
 				printRecord(pet);
-				//preMenu();
+				preMenu();
 				writeTable(idF,pet);
 			}else{
 				if (m==1) {//ya tiene una colisión asignada
 				    idF=isColitioned(idF,pet->Name);
 					if (idF<0) {
 					    idF=-idF;
-					    idF=getColision(idF);
+					    // idF=getColision(idF);
 				    }else{
 						int n;
 					    n=isFull(idF,pet->Name);
@@ -672,6 +766,7 @@ void randomStruct2(){
 int main(){
 	init();
     randomStruct();
-   //randomStruct2();
+	//randomStructF();
+//    randomStruct2();
     return 0;
 }
