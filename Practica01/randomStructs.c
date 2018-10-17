@@ -769,4 +769,4 @@ int main(){
 	//randomStructF();
 //    randomStruct2();
     return 0;
-}
+} 
