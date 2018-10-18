@@ -690,7 +690,7 @@ int getColision(int count,int key){
 				dog->colision=count;
 				printf("Nombre cambiado%s\n",dog->Name);
 				fwrite(dog,sizeof(struct dogType),1,files2);
-				for (int rec = count; rec < totalRecords; rec++) {
+				for (int rec = key; rec < totalRecords; rec++) {
 				    fread(dog,sizeof(struct dogType),1,files);
 				    fwrite(dog,sizeof(struct dogType),1,files2);
 				}
@@ -706,15 +706,57 @@ int getColision(int count,int key){
   }
 }
 
+int getKey(int code,char name[32]){
+  char buf[32];
+	int res=0;
+	FILE *files=fopen("dataDogs.dat","rb");
+	struct dogType* dog=malloc(sizeof(struct dogType));
+	if(files==NULL){
+		printf("Error abriendo archivo dataDogs.dat.\n");
+		res=0;
+	}else{
+		fseek(files, 0L, SEEK_END);
+		//fread(dog,sizeof(struct dogType),1,files);
+		long int wr = ftell(files);
+		printf("tamleido%li\n",wr);
+		fseek(files, 0L, SEEK_SET);
+		int ingresados;
+		fread(&ingresados,sizeof(int),1,files);
+		int totalRecords=(int)(((wr-sizeof(int))/sizeof(struct dogType)));
+		printf("Cantidad de registros:\t""%i\n",ingresados);
+		printf("Cantidad de estructuras:\t""%i\n",totalRecords);
+
+    memset(dog->Name,0,32);
+
+    do {
+      fseek(files,(sizeof(int)+(sizeof(struct dogType)*(code-1))),SEEK_SET);
+      fread(dog,sizeof(struct dogType),1,files);
+      int temp = equals(dog->Name,name);
+      if (temp==0) {
+        code=dog->colision;
+      }else{
+        res=1;
+      }
+    } while(res!=1);
+			printf("id = %i\n",dog->id);
+			printf("existe = %i\n",dog->existe);
+
+		fclose(files);
+		free(dog);
+  }
+  return code;
+
+}
+
 void randomStruct2(){
 	struct dogType *pet;
 	//se meten los datos en el archivo
 	int i=0,idF;
  	int colitions=0;
-	for(;i<70;i++){
+	for(;i<10e6;i++){
 		pet=malloc(sizeof(struct dogType));
 		memset(pet->Name,0,32);
-		strcpy(pet->Name,names[i]);
+		strcpy(pet->Name,randName());
         strcpy(pet->Type,randType());
         pet->Age = randAge();
         strcpy(pet->breed,randBreed());
@@ -722,42 +764,15 @@ void randomStruct2(){
         pet->weight = randWeight();
         pet->gender = randGender();
 		idF = hash_function(pet->Name);
-    	int m = isFull(idF,pet->Name);
-    	if (m==0 || m==2) {//si es 0 no ha escrito nada si es 2 hay una estructura con el mismo nombre
+    idF = getKey(idF,pet->Name);
+    int m = isFull(idF,pet->Name);
+    while(m!=0){
+      idF=idF+1005;
+      m = isFull(idF,pet->Name);
+    }
+    pet->id= idF;
+    writeTable(idF,pet);
 
-    	}else{
-			if(m==-1){//si -1 no tiene colisión asignada
-				// idF=getColision(idF);
-				printf("%i\n",idF);
-				pet->id = idF;
-				pet->existe = 1;
-				colitions++;
-				printRecord(pet);
-				preMenu();
-				writeTable(idF,pet);
-			}else{
-				if (m==1) {//ya tiene una colisión asignada
-				    idF=isColitioned(idF,pet->Name);
-					if (idF<0) {
-					    idF=-idF;
-					    // idF=getColision(idF);
-				    }else{
-						int n;
-					    n=isFull(idF,pet->Name);
-					    while (idF!=0 && idF!=2) {
-		        			idF=idF+1005;
-		        			n=isFull(idF,pet->Name);
-		      			}
-		    	}
-				pet->id = idF;
-				pet->existe = 1;
-				printf("%i\n",idF);
-				colitions++;
-				writeTable(idF,pet);
-			  	}
-//			printRecord(pet);
-			}
-		}
 	}
   	printf("colitions ingresadas%i\n",colitions);
 	printf("Archivo de prueba generado exitosamente.\n");
@@ -765,8 +780,10 @@ void randomStruct2(){
 
 int main(){
 	init();
-    randomStruct();
+    // randomStruct();
 	//randomStructF();
-//    randomStruct2();
+  for (int i = 0; i < 17; i++) {
+    randomStruct2();
+  }
     return 0;
-} 
+}
