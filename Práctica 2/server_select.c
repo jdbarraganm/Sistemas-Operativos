@@ -467,16 +467,16 @@ void seeRecord(int buscar,struct dogType *dog){
 			// printf("next %i\n",dog->next);
 			// printf("colision %i\n",dog->colision);
 
-
+      return(dog);
 		}
 		fseek(files,0L,SEEK_END);
 
 		fclose(files);
 	}
-	free(dog);
-	printf("Información mostrada exitosamente.\n");
+	// free(dog);
+	// printf("Información mostrada exitosamente.\n");
 
-    preMenu();
+    // preMenu();
 }
 
 void deleteRecord(int record){
@@ -764,8 +764,15 @@ void server(){
 								}
 								break;
 							case 2:
+                struct dogType* dog=malloc(sizeof(struct dogType));
+								seeRecord(mens->registro,dog);
 
-								seeRecord(mens->registro);
+                int num = dog->id;
+                if(existe_archivo(num)==0){
+
+                }else{
+
+                }
                 char path[12];
           			char b[5] = "nano ";
           			itoa(dog->id,path);
@@ -810,6 +817,21 @@ void server(){
 
 }
 
+int existe_archivo(int a){
+  char b[32];
+  printf("ok\n");
+  itoa(a,b);
+  printf("b= %s\n",b);
+  FILE *files=fopen(b,"rb");
+	struct dogType* dog=malloc(sizeof(struct dogType));
+	if(files==NULL){
+    res = 0;
+	}else{
+    res = 1;
+    close(files);
+  }
+  return res;
+}
 
 int main(void){
 	server();
