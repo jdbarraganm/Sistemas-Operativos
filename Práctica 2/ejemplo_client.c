@@ -75,7 +75,6 @@ int menu(){
 				return 1;
                 break;
             case 2:
-				printf("entro a 2!!\n");
 				return 2;
                 break;
             case 3:
@@ -124,8 +123,57 @@ void insertRecord(struct dogType *newDog){
 			continue;
 		}
 		break;
-	}while(1);
+	}while(1);	
 }
+
+void gotoxy(int x,int y){
+	printf("%c[%d;%df",0x1B,y,x);
+}
+
+char fname[100];
+
+char* recieveFile(){
+	/* Create file where data will be stored */
+	int sockfd = 0;
+    int bytesReceived = 0;
+    char recvBuff[1024];
+    memset(recvBuff, '0', sizeof(recvBuff));
+    	FILE *fp;
+	char fname[100];
+	read(sockfd, fname, 256);
+	//strcat(fname,"AK");
+	printf("File Name: %s\n",fname);
+	printf("Receiving file...");
+   	 fp = fopen(fname, "ab");
+    	if(NULL == fp)
+    	{
+       	 printf("Error opening file");
+         return 1;
+    	}
+    long double sz=1;
+    /* Receive data in chunks of 256 bytes */
+    while((bytesReceived = read(sockfd, recvBuff, 1024)) > 0)
+    {
+        sz++;
+        gotoxy(0,4);
+        printf("Received: %llf Mb",(sz/1024));
+	fflush(stdout);
+        // recvBuff[n] = 0;
+        fwrite(recvBuff, 1,bytesReceived,fp);
+        // printf("%s \n", recvBuff);
+    }
+
+    if(bytesReceived < 0)
+    {
+        printf("\n Read Error \n");
+    }
+    printf("\nFile OK....Completed\n");
+
+    return fname;
+}
+
+
+
 
 int main(void) {
 	struct sockaddr_in direccionServidor;
@@ -158,7 +206,7 @@ int main(void) {
 				preMenu();
 				send(cliente, mens, sizeof(struct mensaje), 0);
 				send(cliente, newDog, sizeof(struct dogType), 0);
-
+				
 				free(mens);
 				free(newDog);
 				break;
@@ -174,7 +222,31 @@ int main(void) {
 				mens2->option = 2;
 				memcpy(mens2->cadena,newDog2->Name,32);
 				mens2->registro = buscar;
+				int ingresados, totalRecords;
 				send(cliente, mens2, sizeof(struct mensaje), 0);
+				recv(cliente, &ingresados, sizeof(int), 0);
+				printf("Cantidad de registros:\t""%i\n",ingresados);
+				recv(cliente, &totalRecords, sizeof(int), 0);
+				printf("Cantidad de estructuras:\t""%i\n",totalRecords);
+				char fi[32];
+				strcpy( fi, recieveFile());
+				recieveFile();
+				char b[32];
+				recv(cliente, b, sizeof(b), 0);
+				char q;
+				fflush(stdin);
+				printf("oprima y / n para abrir el historial.\n");
+				do{
+					scanf("%c",&q);
+					if(q!='y'&&q!='n'){
+						printf("opcion invalida, solo se permite y / n.\n");
+						continue;
+					}
+					break;
+				}while(1);
+		        if(q=='y'){
+					system(b);
+				}
 				free(mens2);
 				free(newDog2);
 				break;
@@ -208,6 +280,17 @@ int main(void) {
 				send(cliente, mens4, sizeof(struct mensaje), 0);
 				free(mens4);
 				free(newDog4);
+				struct dogType *petR = malloc(sizeof(struct dogType));
+				int nbytes;
+				while((nbytes = recv(cliente, petR, sizeof(struct dogType), 0)) > 0){
+					printRecord(petR);
+					printf("%i\n",nbytes);
+					if(petR->existe == 0){
+						free(petR);
+						break;					
+					}
+				}
+				free(petR);
 				break;
 			case 5:
 				break;
@@ -222,7 +305,7 @@ int main(void) {
                 printf("%i\n", h);
                 break;
 
-		}
+		}		
 
 	}
 
